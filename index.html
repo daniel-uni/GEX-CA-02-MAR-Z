@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Soporte Interno</title>
     <link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
     <!-- Login Screen -->
     <div id="loginScreen" class="login-container">
@@ -70,6 +72,34 @@
 
                 <div class="section">
                     <h2>Mis Solicitudes</h2>
+
+                    <!-- HU09: Búsqueda y filtros -->
+                    <div class="filter-section">
+                        <div class="form-group" style="margin-bottom: 15px;">
+                            <input type="text" id="searchInput" placeholder="Buscar por título o descripción..."
+                                onkeyup="filtrarSolicitudes()">
+                        </div>
+                        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                            <select id="filterEstado" onchange="filtrarSolicitudes()" class="inline-select"
+                                style="flex: 1;">
+                                <option value="">Todos los estados</option>
+                                <option value="pendiente">Pendiente</option>
+                                <option value="en_proceso">En proceso</option>
+                                <option value="resuelto">Resuelto</option>
+                                <option value="confirmado">Confirmado</option>
+                                <option value="reabierto">Reabierto</option>
+                            </select>
+                            <select id="filterCategoria" onchange="filtrarSolicitudes()" class="inline-select"
+                                style="flex: 1;">
+                                <option value="">Todas las categorías</option>
+                                <option value="Hardware">Hardware</option>
+                                <option value="Software">Software</option>
+                                <option value="Red">Red</option>
+                                <option value="Otro">Otro</option>
+                            </select>
+                        </div>
+                    </div>
+
                     <div id="solicitanteTable"></div>
                 </div>
             </div>
@@ -78,10 +108,55 @@
             <div id="coordinadorDashboard" class="dashboard">
                 <div class="section">
                     <h2>Gestión de Solicitudes</h2>
+
+                    <!-- HU09: Búsqueda y filtros para coordinador -->
+                    <div class="filter-section">
+                        <div class="form-group" style="margin-bottom: 15px;">
+                            <input type="text" id="coordSearchInput"
+                                placeholder="Buscar por título, solicitante o ID..." onkeyup="filtrarCoordinador()">
+                        </div>
+                        <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                            <select id="coordFilterEstado" onchange="filtrarCoordinador()" class="inline-select"
+                                style="flex: 1; min-width: 150px;">
+                                <option value="">Todos los estados</option>
+                                <option value="pendiente">Pendiente</option>
+                                <option value="en_proceso">En proceso</option>
+                                <option value="resuelto">Resuelto</option>
+                                <option value="confirmado">Confirmado</option>
+                                <option value="reabierto">Reabierto</option>
+                            </select>
+                            <select id="coordFilterPrioridad" onchange="filtrarCoordinador()" class="inline-select"
+                                style="flex: 1; min-width: 150px;">
+                                <option value="">Todas las prioridades</option>
+                                <option value="alta">Alta</option>
+                                <option value="media">Media</option>
+                                <option value="baja">Baja</option>
+                            </select>
+                            <select id="coordFilterAgente" onchange="filtrarCoordinador()" class="inline-select"
+                                style="flex: 1; min-width: 150px;">
+                                <option value="">Todos los agentes</option>
+                            </select>
+                        </div>
+                    </div>
+
                     <p class="help-text">
                         Puede priorizar las solicitudes y asignarlas a un agente responsable.
                     </p>
                     <div id="coordinadorTable"></div>
+                </div>
+
+                <!-- HU10: Indicadores agregados -->
+                <div class="section">
+                    <h2>Indicadores del Servicio</h2>
+                    <div id="indicadoresContent"></div>
+                </div>
+
+                <!-- HU12: Exportar reporte -->
+                <div class="section">
+                    <h2>Exportar Reporte</h2>
+                    <p class="help-text">Descargue un reporte en formato CSV con todas las solicitudes.</p>
+                    <button class="btn" onclick="exportarReporte()" style="max-width: 300px;">📥 Descargar Reporte
+                        CSV</button>
                 </div>
             </div>
 
@@ -89,6 +164,26 @@
             <div id="agenteDashboard" class="dashboard">
                 <div class="section">
                     <h2>Solicitudes Asignadas</h2>
+
+                    <!-- HU09: Filtros para agente -->
+                    <div class="filter-section">
+                        <div class="form-group" style="margin-bottom: 15px;">
+                            <input type="text" id="agenteSearchInput" placeholder="Buscar por título o ID..."
+                                onkeyup="filtrarAgente()">
+                        </div>
+                        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                            <select id="agenteFilterEstado" onchange="filtrarAgente()" class="inline-select"
+                                style="flex: 1;">
+                                <option value="">Todos los estados</option>
+                                <option value="pendiente">Pendiente</option>
+                                <option value="en_proceso">En proceso</option>
+                                <option value="resuelto">Resuelto</option>
+                                <option value="confirmado">Confirmado</option>
+                                <option value="reabierto">Reabierto</option>
+                            </select>
+                        </div>
+                    </div>
+
                     <p class="help-text">
                         Solicitudes asignadas a usted. Puede cambiar el estado y registrar comentarios.
                     </p>
@@ -98,11 +193,25 @@
 
             <!-- Auditor Dashboard -->
             <div id="auditorDashboard" class="dashboard">
+                <!-- HU11: Historial completo -->
                 <div class="section">
                     <h2>Auditoría del Sistema</h2>
                     <p class="help-text">
-                        Vista de solo lectura. Historial completo de solicitudes y cambios.
+                        Vista de solo lectura. Historial completo de cambios en todas las solicitudes.
                     </p>
+
+                    <!-- Filtros para auditor -->
+                    <div class="filter-section">
+                        <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                            <input type="text" id="auditorSearchInput" placeholder="Buscar por solicitud o usuario..."
+                                onkeyup="filtrarAuditor()" style="flex: 2; min-width: 200px;">
+                            <select id="auditorFilterAccion" onchange="filtrarAuditor()" class="inline-select"
+                                style="flex: 1; min-width: 150px;">
+                                <option value="">Todas las acciones</option>
+                            </select>
+                        </div>
+                    </div>
+
                     <div id="auditorTable"></div>
                 </div>
             </div>
@@ -122,4 +231,5 @@
 
     <script src="app.js"></script>
 </body>
+
 </html>

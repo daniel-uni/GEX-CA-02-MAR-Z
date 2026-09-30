@@ -24,7 +24,7 @@ if (solicitudes.length === 0) {
             prioridad: 'media',
             estado: 'pendiente',
             comentarios: [],
-            fechaCreacion: new Date().toISOString(),
+            fechaCreacion: new Date(Date.now() - 172800000).toISOString(),
             fechaActualizacion: new Date().toISOString()
         },
         {
@@ -37,10 +37,25 @@ if (solicitudes.length === 0) {
             prioridad: 'alta',
             estado: 'en_proceso',
             comentarios: [
-                { autor: 'agente2', texto: 'Se está revisando la configuración del servidor', fecha: new Date().toISOString() }
+                { autor: 'agente2', texto: 'Se está revisando la configuración del servidor', fecha: new Date(Date.now() - 86400000).toISOString() }
             ],
             fechaCreacion: new Date(Date.now() - 86400000).toISOString(),
             fechaActualizacion: new Date().toISOString()
+        },
+        {
+            id: 3,
+            titulo: 'Internet lento en oficina',
+            descripcion: 'La conexión es muy lenta desde hace 2 días',
+            categoria: 'Red',
+            solicitante: 'solicitante',
+            asignado: 'agente',
+            prioridad: 'baja',
+            estado: 'resuelto',
+            comentarios: [
+                { autor: 'agente', texto: 'Se reinició el router principal', fecha: new Date(Date.now() - 43200000).toISOString() }
+            ],
+            fechaCreacion: new Date(Date.now() - 259200000).toISOString(),
+            fechaActualizacion: new Date(Date.now() - 43200000).toISOString()
         }
     ];
     historial = [
@@ -48,7 +63,10 @@ if (solicitudes.length === 0) {
         { id: 2, solicitudId: 1, accion: 'Asignada a agente', usuario: 'coordinador', fecha: solicitudes[0].fechaCreacion },
         { id: 3, solicitudId: 2, accion: 'Solicitud creada', usuario: 'solicitante', fecha: solicitudes[1].fechaCreacion },
         { id: 4, solicitudId: 2, accion: 'Asignada a agente2', usuario: 'coordinador', fecha: solicitudes[1].fechaCreacion },
-        { id: 5, solicitudId: 2, accion: 'Estado cambiado a en_proceso', usuario: 'agente2', fecha: solicitudes[1].fechaActualizacion }
+        { id: 5, solicitudId: 2, accion: 'Estado cambiado a en_proceso', usuario: 'agente2', fecha: solicitudes[1].fechaActualizacion },
+        { id: 6, solicitudId: 3, accion: 'Solicitud creada', usuario: 'solicitante', fecha: solicitudes[2].fechaCreacion },
+        { id: 7, solicitudId: 3, accion: 'Asignada a agente', usuario: 'coordinador', fecha: solicitudes[2].fechaCreacion },
+        { id: 8, solicitudId: 3, accion: 'Estado cambiado a resuelto', usuario: 'agente', fecha: solicitudes[2].fechaActualizacion }
     ];
     saveData();
 }
@@ -90,12 +108,15 @@ function showApp() {
     } else if (currentUser.role === 'coordinador') {
         document.getElementById('coordinadorDashboard').classList.add('active');
         renderCoordinadorTable();
+        renderIndicadores();
+        cargarFiltroAgentes();
     } else if (currentUser.role === 'agente') {
         document.getElementById('agenteDashboard').classList.add('active');
         renderAgenteTable();
     } else if (currentUser.role === 'auditor') {
         document.getElementById('auditorDashboard').classList.add('active');
         renderAuditorTable();
+        cargarFiltroAcciones();
     }
 }
 
@@ -142,13 +163,42 @@ document.getElementById('createForm').addEventListener('submit', function(e) {
     renderSolicitanteTable();
 });
 
-// ============ HU03: Consultar mis solicitudes ============
+// ============ HU03 + HU09: Consultar mis solicitudes con filtros ============
+function getSolicitudesFiltradas() {
+    let filtradas = solicitudes.filter(s => s.solicitante === currentUser.username);
+    
+    const busqueda = document.getElementById('searchInput').value.toLowerCase();
+    const estado = document.getElementById('filterEstado').value;
+    const categoria = document.getElementById('filterCategoria').value;
+    
+    if (busqueda) {
+        filtradas = filtradas.filter(s => 
+            s.titulo.toLowerCase().includes(busqueda) || 
+            s.descripcion.toLowerCase().includes(busqueda)
+        );
+    }
+    
+    if (estado) {
+        filtradas = filtradas.filter(s => s.estado === estado);
+    }
+    
+    if (categoria) {
+        filtradas = filtradas.filter(s => s.categoria === categoria);
+    }
+    
+    return filtradas;
+}
+
+function filtrarSolicitudes() {
+    renderSolicitanteTable();
+}
+
 function renderSolicitanteTable() {
-    const misSolicitudes = solicitudes.filter(s => s.solicitante === currentUser.username);
+    const misSolicitudes = getSolicitudesFiltradas();
     const container = document.getElementById('solicitanteTable');
 
     if (misSolicitudes.length === 0) {
-        container.innerHTML = '<div class="empty-state">No tiene solicitudes registradas</div>';
+        container.innerHTML = '<div class="empty-state">No tiene solicitudes que coincidan con los filtros</div>';
         return;
     }
 
@@ -188,20 +238,66 @@ function renderSolicitanteTable() {
     container.innerHTML = html;
 }
 
-// ============ HU04: Priorizar + HU05: Asignar ============
+// ============ HU04 + HU05 + HU09: Coordinador con filtros ============
+function getSolicitudesCoordFiltradas() {
+    let filtradas = [...solicitudes];
+    
+    const busqueda = document.getElementById('coordSearchInput').value.toLowerCase();
+    const estado = document.getElementById('coordFilterEstado').value;
+    const prioridad = document.getElementById('coordFilterPrioridad').value;
+    const agente = document.getElementById('coordFilterAgente').value;
+    
+    if (busqueda) {
+        filtradas = filtradas.filter(s => 
+            s.titulo.toLowerCase().includes(busqueda) || 
+            s.solicitante.toLowerCase().includes(busqueda) ||
+            s.id.toString().includes(busqueda)
+        );
+    }
+    
+    if (estado) {
+        filtradas = filtradas.filter(s => s.estado === estado);
+    }
+    
+    if (prioridad) {
+        filtradas = filtradas.filter(s => s.prioridad === prioridad);
+    }
+    
+    if (agente) {
+        filtradas = filtradas.filter(s => s.asignado === agente);
+    }
+    
+    // Ordenar por prioridad
+    const ordenPrioridad = { alta: 1, media: 2, baja: 3 };
+    filtradas.sort((a, b) => ordenPrioridad[a.prioridad] - ordenPrioridad[b.prioridad]);
+    
+    return filtradas;
+}
+
+function filtrarCoordinador() {
+    renderCoordinadorTable();
+}
+
+function cargarFiltroAgentes() {
+    const select = document.getElementById('coordFilterAgente');
+    const agentes = users.filter(u => u.role === 'agente');
+    
+    let html = '<option value="">Todos los agentes</option>';
+    agentes.forEach(a => {
+        html += `<option value="${a.username}">${a.name}</option>`;
+    });
+    select.innerHTML = html;
+}
+
 function renderCoordinadorTable() {
     const container = document.getElementById('coordinadorTable');
+    const solicitudesFiltradas = getSolicitudesCoordFiltradas();
     const agentes = users.filter(u => u.role === 'agente');
 
-    if (solicitudes.length === 0) {
-        container.innerHTML = '<div class="empty-state">No hay solicitudes registradas</div>';
+    if (solicitudesFiltradas.length === 0) {
+        container.innerHTML = '<div class="empty-state">No hay solicitudes que coincidan con los filtros</div>';
         return;
     }
-
-    const ordenPrioridad = { alta: 1, media: 2, baja: 3 };
-    const sorted = [...solicitudes].sort((a, b) => 
-        ordenPrioridad[a.prioridad] - ordenPrioridad[b.prioridad]
-    );
 
     let html = `
         <table>
@@ -221,7 +317,7 @@ function renderCoordinadorTable() {
             <tbody>
     `;
 
-    sorted.forEach(s => {
+    solicitudesFiltradas.forEach(s => {
         let asignadoHtml = '';
         if (s.asignado) {
             asignadoHtml = `<span>${s.asignado}</span>`;
@@ -264,7 +360,6 @@ function renderCoordinadorTable() {
     container.innerHTML = html;
 }
 
-// HU05: Asignar solicitud a agente
 function asignarSolicitud(id, agenteUsername) {
     const solicitud = solicitudes.find(s => s.id === id);
     if (!solicitud) return;
@@ -305,13 +400,37 @@ function cambiarPrioridad(id, direction) {
     renderCoordinadorTable();
 }
 
-// ============ HU06 + HU07: Agente ============
+// ============ HU06 + HU07 + HU09: Agente con filtros ============
+function getSolicitudesAgenteFiltradas() {
+    let filtradas = solicitudes.filter(s => s.asignado === currentUser.username);
+    
+    const busqueda = document.getElementById('agenteSearchInput').value.toLowerCase();
+    const estado = document.getElementById('agenteFilterEstado').value;
+    
+    if (busqueda) {
+        filtradas = filtradas.filter(s => 
+            s.titulo.toLowerCase().includes(busqueda) || 
+            s.id.toString().includes(busqueda)
+        );
+    }
+    
+    if (estado) {
+        filtradas = filtradas.filter(s => s.estado === estado);
+    }
+    
+    return filtradas;
+}
+
+function filtrarAgente() {
+    renderAgenteTable();
+}
+
 function renderAgenteTable() {
-    const misSolicitudes = solicitudes.filter(s => s.asignado === currentUser.username);
+    const misSolicitudes = getSolicitudesAgenteFiltradas();
     const container = document.getElementById('agenteTable');
 
     if (misSolicitudes.length === 0) {
-        container.innerHTML = '<div class="empty-state">No tiene solicitudes asignadas</div>';
+        container.innerHTML = '<div class="empty-state">No tiene solicitudes asignadas que coincidan con los filtros</div>';
         return;
     }
 
@@ -349,16 +468,51 @@ function renderAgenteTable() {
     container.innerHTML = html;
 }
 
-// ============ HU08: Auditor ============
+// ============ HU08 + HU11: Auditor con filtros ============
+function getHistorialFiltrado() {
+    let filtrado = [...historial];
+    
+    const busqueda = document.getElementById('auditorSearchInput').value.toLowerCase();
+    const accion = document.getElementById('auditorFilterAccion').value;
+    
+    if (busqueda) {
+        filtrado = filtrado.filter(h => 
+            h.solicitudId.toString().includes(busqueda) || 
+            h.usuario.toLowerCase().includes(busqueda) ||
+            h.accion.toLowerCase().includes(busqueda)
+        );
+    }
+    
+    if (accion) {
+        filtrado = filtrado.filter(h => h.accion === accion);
+    }
+    
+    return filtrado.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+}
+
+function filtrarAuditor() {
+    renderAuditorTable();
+}
+
+function cargarFiltroAcciones() {
+    const select = document.getElementById('auditorFilterAccion');
+    const accionesUnicas = [...new Set(historial.map(h => h.accion))];
+    
+    let html = '<option value="">Todas las acciones</option>';
+    accionesUnicas.forEach(acc => {
+        html += `<option value="${acc}">${acc}</option>`;
+    });
+    select.innerHTML = html;
+}
+
 function renderAuditorTable() {
     const container = document.getElementById('auditorTable');
+    const historialFiltrado = getHistorialFiltrado();
 
-    if (historial.length === 0) {
-        container.innerHTML = '<div class="empty-state">No hay registros de auditoría</div>';
+    if (historialFiltrado.length === 0) {
+        container.innerHTML = '<div class="empty-state">No hay registros de auditoría que coincidan con los filtros</div>';
         return;
     }
-
-    const sorted = [...historial].sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
 
     let html = `
         <table>
@@ -373,7 +527,7 @@ function renderAuditorTable() {
             <tbody>
     `;
 
-    sorted.forEach(h => {
+    historialFiltrado.forEach(h => {
         html += `
             <tr>
                 <td>${formatDate(h.fecha)}</td>
@@ -386,6 +540,131 @@ function renderAuditorTable() {
 
     html += '</tbody></table>';
     container.innerHTML = html;
+}
+
+// ============ HU10: Indicadores agregados ============
+function renderIndicadores() {
+    const container = document.getElementById('indicadoresContent');
+    
+    const total = solicitudes.length;
+    const pendientes = solicitudes.filter(s => s.estado === 'pendiente').length;
+    const enProceso = solicitudes.filter(s => s.estado === 'en_proceso').length;
+    const resueltas = solicitudes.filter(s => s.estado === 'resuelto' || s.estado === 'confirmado').length;
+    const reabiertas = solicitudes.filter(s => s.estado === 'reabierto').length;
+    
+    const tasaResolucion = total > 0 ? Math.round((resueltas / total) * 100) : 0;
+    
+    // Tiempo promedio de resolución (solo para resueltas/confirmadas)
+    const resueltasConTiempo = solicitudes.filter(s => 
+        s.estado === 'resuelto' || s.estado === 'confirmado'
+    );
+    
+    let tiempoPromedio = '-';
+    if (resueltasConTiempo.length > 0) {
+        const totalHoras = resueltasConTiempo.reduce((sum, s) => {
+            const horas = (new Date(s.fechaActualizacion) - new Date(s.fechaCreacion)) / (1000 * 60 * 60);
+            return sum + horas;
+        }, 0);
+        const promedioHoras = totalHoras / resueltasConTiempo.length;
+        tiempoPromedio = promedioHoras.toFixed(1) + ' horas';
+    }
+    
+    // Por categoría
+    const categorias = {};
+    solicitudes.forEach(s => {
+        categorias[s.categoria] = (categorias[s.categoria] || 0) + 1;
+    });
+    
+    let html = `
+        <div class="indicadores-grid">
+            <div class="indicador-card">
+                <h4>Total Solicitudes</h4>
+                <div class="valor">${total}</div>
+            </div>
+            <div class="indicador-card">
+                <h4>Pendientes</h4>
+                <div class="valor">${pendientes}</div>
+            </div>
+            <div class="indicador-card">
+                <h4>En Proceso</h4>
+                <div class="valor">${enProceso}</div>
+            </div>
+            <div class="indicador-card">
+                <h4>Resueltas</h4>
+                <div class="valor">${resueltas}</div>
+                <div class="detalle">${tasaResolucion}% tasa de resolución</div>
+            </div>
+            <div class="indicador-card">
+                <h4>Reabiertas</h4>
+                <div class="valor">${reabiertas}</div>
+            </div>
+            <div class="indicador-card">
+                <h4>Tiempo Promedio</h4>
+                <div class="valor" style="font-size: 24px;">${tiempoPromedio}</div>
+            </div>
+        </div>
+        
+        <div class="tabla-indicadores">
+            <h3 style="margin-bottom: 10px;">Distribución por Categoría</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Categoría</th>
+                        <th>Cantidad</th>
+                        <th>Porcentaje</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+    
+    Object.entries(categorias).sort((a, b) => b[1] - a[1]).forEach(([cat, cant]) => {
+        const porcentaje = ((cant / total) * 100).toFixed(1);
+        html += `
+            <tr>
+                <td>${cat}</td>
+                <td>${cant}</td>
+                <td>${porcentaje}%</td>
+            </tr>
+        `;
+    });
+    
+    html += '</tbody></table></div>';
+    container.innerHTML = html;
+}
+
+// ============ HU12: Exportar reporte ============
+function exportarReporte() {
+    // Encabezados CSV
+    let csv = 'ID,Título,Categoría,Solicitante,Asignado,Prioridad,Estado,Fecha Creación,Fecha Actualización\n';
+    
+    // Filas
+    solicitudes.forEach(s => {
+        const fila = [
+            s.id,
+            `"${s.titulo.replace(/"/g, '""')}"`,
+            s.categoria,
+            s.solicitante,
+            s.asignado || '',
+            s.prioridad,
+            s.estado,
+            formatDate(s.fechaCreacion),
+            formatDate(s.fechaActualizacion)
+        ];
+        csv += fila.join(',') + '\n';
+    });
+    
+    // Crear blob y descargar
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', `reporte_solicitudes_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }
 
 // ============ Modal de detalles ============
@@ -487,11 +766,9 @@ function verDetalle(id) {
     modal.classList.add('active');
 }
 
-// Renderiza acciones según el rol y estado
 function renderAcciones(solicitud) {
     let html = '<div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #eee;">';
 
-    // HU07: Agente puede cambiar estado
     if (currentUser.role === 'agente' && solicitud.asignado === currentUser.username) {
         html += '<h4 style="margin-bottom: 10px; font-size: 14px;">Cambiar estado:</h4>';
         html += '<div class="action-controls">';
@@ -506,7 +783,6 @@ function renderAcciones(solicitud) {
         html += '</div>';
     }
 
-    // HU08: Solicitante puede confirmar o reabrir
     if (currentUser.role === 'solicitante' && solicitud.solicitante === currentUser.username) {
         if (solicitud.estado === 'resuelto') {
             html += '<h4 style="margin-bottom: 10px; font-size: 14px;">¿La solución fue satisfactoria?</h4>';
@@ -521,7 +797,6 @@ function renderAcciones(solicitud) {
     return html;
 }
 
-// HU06: Agregar comentario
 function agregarComentario(id) {
     const texto = document.getElementById('nuevoComentario').value.trim();
     if (!texto) {
@@ -545,7 +820,6 @@ function agregarComentario(id) {
     verDetalle(id);
 }
 
-// HU07 + HU08: Cambiar estado
 function cambiarEstado(id, nuevoEstado) {
     const solicitud = solicitudes.find(s => s.id === id);
     if (!solicitud) return;
@@ -567,7 +841,10 @@ function closeModal() {
 
 function refreshCurrentView() {
     if (currentUser.role === 'solicitante') renderSolicitanteTable();
-    else if (currentUser.role === 'coordinador') renderCoordinadorTable();
+    else if (currentUser.role === 'coordinador') {
+        renderCoordinadorTable();
+        renderIndicadores();
+    }
     else if (currentUser.role === 'agente') renderAgenteTable();
     else if (currentUser.role === 'auditor') renderAuditorTable();
 }
@@ -604,7 +881,6 @@ function saveData() {
     localStorage.setItem('historial', JSON.stringify(historial));
 }
 
-// Cerrar modal al hacer clic fuera
 window.onclick = function(event) {
     const modal = document.getElementById('detailModal');
     if (event.target === modal) {
