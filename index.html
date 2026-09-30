@@ -23,7 +23,7 @@
             <button type="submit" class="btn">Iniciar Sesión</button>
         </form>
         <div class="info-box" style="margin-top: 20px;">
-            <strong>Bienvenido al Sistema de Soporte Interno</strong><br>
+            <strong>Bienvenido al Sistema de Soporte Interno</strong>
         </div>
     </div>
 
@@ -78,10 +78,32 @@
             <div id="coordinadorDashboard" class="dashboard">
                 <div class="section">
                     <h2>Gestión de Solicitudes</h2>
-                    <p style="margin-bottom: 15px; color: #666; font-size: 14px;">
-                        Puede priorizar las solicitudes usando los botones de prioridad.
+                    <p class="help-text">
+                        Puede priorizar las solicitudes y asignarlas a un agente responsable.
                     </p>
                     <div id="coordinadorTable"></div>
+                </div>
+            </div>
+
+            <!-- Agente Dashboard -->
+            <div id="agenteDashboard" class="dashboard">
+                <div class="section">
+                    <h2>Solicitudes Asignadas</h2>
+                    <p class="help-text">
+                        Solicitudes asignadas a usted. Puede cambiar el estado y registrar comentarios.
+                    </p>
+                    <div id="agenteTable"></div>
+                </div>
+            </div>
+
+            <!-- Auditor Dashboard -->
+            <div id="auditorDashboard" class="dashboard">
+                <div class="section">
+                    <h2>Auditoría del Sistema</h2>
+                    <p class="help-text">
+                        Vista de solo lectura. Historial completo de solicitudes y cambios.
+                    </p>
+                    <div id="auditorTable"></div>
                 </div>
             </div>
         </div>
@@ -89,8 +111,8 @@
 
     <!-- Modal para detalles -->
     <div id="detailModal" class="modal">
-        <div class="modal-content">
-            <h3>Detalles de la Solicitud</h3>
+        <div class="modal-content modal-large">
+            <h3 id="modalTitle">Detalles de la Solicitud</h3>
             <div id="modalContent"></div>
             <div class="modal-buttons">
                 <button class="btn btn-secondary" onclick="closeModal()">Cerrar</button>
