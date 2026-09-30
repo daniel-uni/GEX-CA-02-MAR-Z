@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Soporte Interno - MAR-Z Core</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <!-- Login Screen -->
+    <div id="loginScreen" class="login-container">
+        <h2>Sistema de Soporte Interno</h2>
+        <div id="loginError" class="error-message" style="display: none;"></div>
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="username">Usuario:</label>
+                <input type="text" id="username" autocomplete="username" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Contraseña:</label>
+                <input type="password" id="password" autocomplete="current-password" required>
+            </div>
+            <button type="submit" class="btn">Iniciar Sesión</button>
+        </form>
+    </div>
+
+    <!-- Main Application -->
+    <div id="mainApp" style="display: none;">
+        <header class="header">
+            <div class="header-content">
+                <h1>Sistema de Soporte Interno</h1>
+                <div class="user-info">
+                    <!-- Notificaciones en la aplicación (HU05) -->
+                    <div class="notifications-wrapper">
+                        <button id="btnNotificaciones" class="btn-icon" onclick="toggleNotificaciones()"
+                            title="Notificaciones">
+                            🔔 <span id="badgeNotificaciones" class="badge-notify" style="display: none;">0</span>
+                        </button>
+                        <div id="dropdownNotificaciones" class="notifications-dropdown" style="display: none;">
+                            <div class="notify-header">
+                                <strong>Notificaciones</strong>
+                                <button class="btn-text-small" onclick="marcarTodasLeidas()">Limpiar</button>
+                            </div>
+                            <div id="listaNotificaciones" class="notify-list"></div>
+                        </div>
+                    </div>
+
+                    <span id="currentUser"></span>
+                    <button class="btn-logout" onclick="logout()">Cerrar Sesión</button>
+                </div>
+            </div>
+        </header>
+
+        <main class="container">
+            <!-- Solicitante Dashboard -->
+            <section id="solicitanteDashboard" class="dashboard">
+                <div class="section">
+                    <h2>Nueva Solicitud</h2>
+                    <form id="createForm">
+                        <div class="form-group">
+                            <label for="titulo">Título *:</label>
+                            <input type="text" id="titulo" placeholder="Resumen breve del problema" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="descripcion">Descripción *:</label>
+                            <textarea id="descripcion" rows="4" placeholder="Detalle la situación o requerimiento"
+                                required></textarea>
+                        </div>
+                        <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                            <div class="form-group" style="flex: 1; min-width: 200px;">
+                                <label for="categoria">Categoría *:</label>
+                                <select id="categoria" required>
+                                    <option value="">Seleccione una categoría</option>
+                                    <option value="Hardware">Hardware</option>
+                                    <option value="Software">Software</option>
+                                    <option value="Red">Red</option>
+                                    <option value="Otro">Otro</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="flex: 1; min-width: 200px;">
+                                <label for="prioridadInicial">Prioridad inicial:</label>
+                                <select id="prioridadInicial" onchange="toggleCamposPrioridadAltaCreacion()">
+                                    <option value="media" selected>Media (Estándar)</option>
+                                    <option value="baja">Baja</option>
+                                    <option value="alta">Alta (Urgente)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Cambio Controlado 1: Prioridad alta requiere justificación y fecha objetivo -->
+                        <div id="camposPrioridadAltaCreacion" class="alert-box" style="display: none;">
+                            <h4 style="margin-bottom: 10px; color: #b71c1c;">Requisitos para Prioridad Alta (Cambio
+                                Controlado 1)</h4>
+                            <div class="form-group">
+                                <label for="justificacionAlta">Justificación de la urgencia *:</label>
+                                <textarea id="justificacionAlta" rows="2"
+                                    placeholder="Explique por qué requiere atención de prioridad alta"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label for="fechaObjetivoAlta">Fecha objetivo de resolución *:</label>
+                                <input type="date" id="fechaObjetivoAlta">
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-success">Crear Solicitud</button>
+                    </form>
+                    <div id="createSuccess" class="success-message" style="display: none;"></div>
+                </div>
+
+                <div class="section">
+                    <h2>Mis Solicitudes</h2>
+
+                    <!-- HU09: Búsqueda y filtros completos -->
+                    <div class="filter-section">
+                        <div class="form-group" style="margin-bottom: 15px;">
+                            <input type="text" id="searchInput" placeholder="Buscar por título o descripción..."
+                                onkeyup="filtrarSolicitudes()">
+                        </div>
+                        <div style="display: flex; gap: 10px; margin-bottom: 5px; flex-wrap: wrap;">
+                            <select id="filterEstado" onchange="filtrarSolicitudes()" class="inline-select"
+                                style="flex: 1; min-width: 140px;">
+                                <option value="">Todos los estados</option>
+                                <option value="Nuevo">Nuevo</option>
+                                <option value="en_proceso">En proceso</option>
+                                <option value="resuelto">Resuelto</option>
+                                <option value="confirmado">Confirmado</option>
+                                <option value="reabierto">Reabierto</option>
+                            </select>
+                            <select id="filterPrioridad" onchange="filtrarSolicitudes()" class="inline-select"
+                                style="flex: 1; min-width: 140px;">
+                                <option value="">Todas las prioridades</option>
+                                <option value="alta">Alta</option>
+                                <option value="media">Media</option>
+                                <option value="baja">Baja</option>
+                            </select>
+                            <select id="filterCategoria" onchange="filtrarSolicitudes()" class="inline-select"
+                                style="flex: 1; min-width: 140px;">
+                                <option value="">Todas las categorías</option>
+                                <option value="Hardware">Hardware</option>
+                                <option value="Software">Software</option>
+                                <option value="Red">Red</option>
+                                <option value="Otro">Otro</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="solicitanteTable"></div>
+                </div>
+            </section>
+
+            <!-- Coordinador Dashboard -->
+            <section id="coordinadorDashboard" class="dashboard">
+                <div class="section">
+                    <h2>Gestión y Asignación de Solicitudes</h2>
+
+                    <!-- HU09: Búsqueda y filtros para coordinador -->
+                    <div class="filter-section">
+                        <div class="form-group" style="margin-bottom: 15px;">
+                            <input type="text" id="coordSearchInput"
+                                placeholder="Buscar por título, descripción, solicitante o ID..."
+                                onkeyup="filtrarCoordinador()">
+                        </div>
+                        <div style="display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap;">
+                            <select id="coordFilterEstado" onchange="filtrarCoordinador()" class="inline-select"
+                                style="flex: 1; min-width: 140px;">
+                                <option value="">Todos los estados</option>
+                                <option value="Nuevo">Nuevo</option>
+                                <option value="en_proceso">En proceso</option>
+                                <option value="resuelto">Resuelto</option>
+                                <option value="confirmado">Confirmado</option>
+                                <option value="reabierto">Reabierto</option>
+                            </select>
+                            <select id="coordFilterPrioridad" onchange="filtrarCoordinador()" class="inline-select"
+                                style="flex: 1; min-width: 140px;">
+                                <option value="">Todas las prioridades</option>
+                                <option value="alta">Alta</option>
+                                <option value="media">Media</option>
+                                <option value="baja">Baja</option>
+                            </select>
+                            <select id="coordFilterCategoria" onchange="filtrarCoordinador()" class="inline-select"
+                                style="flex: 1; min-width: 140px;">
+                                <option value="">Todas las categorías</option>
+                                <option value="Hardware">Hardware</option>
+                                <option value="Software">Software</option>
+                                <option value="Red">Red</option>
+                                <option value="Otro">Otro</option>
+                            </select>
+                            <select id="coordFilterAgente" onchange="filtrarCoordinador()" class="inline-select"
+                                style="flex: 1; min-width: 140px;">
+                                <option value="">Todos los agentes</option>
+                            </select>
+                        </div>
+
+                        <!-- HU04: Lista ordenable por prioridad, estado y fecha -->
+                        <div
+                            style="display: flex; align-items: center; gap: 10px; justify-content: flex-end; font-size: 13px;">
+                            <label for="coordOrdenamiento" style="font-weight: 600; color: #555;">Ordenar por:</label>
+                            <select id="coordOrdenamiento" onchange="filtrarCoordinador()" class="inline-select"
+                                style="min-width: 190px;">
+                                <option value="prioridad">Prioridad (Alta a Baja)</option>
+                                <option value="estado">Estado (A-Z)</option>
+                                <option value="fechaReciente">Fecha (Más reciente)</option>
+                                <option value="fechaAntigua">Fecha (Más antigua)</option>
+                                <option value="actualizacion">Última actualización</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <p class="help-text">
+                        Priorice solicitudes, asigne a agentes activos y supervise el flujo de atención.
+                    </p>
+                    <div id="coordinadorTable"></div>
+                </div>
+
+                <!-- HU10: Indicadores agregados con filtros reproducibles -->
+                <div class="section">
+                    <h2>Indicadores del Servicio (HU10)</h2>
+                    <p class="help-text">Métricas agregadas sin rankings individuales. Filtros reproducibles y tiempo
+                        mediano de ciclo.</p>
+
+                    <div class="filter-section" style="background: #fafafa; padding: 12px; margin-bottom: 15px;">
+                        <span
+                            style="font-size: 12px; font-weight: 600; color: #555; display: block; margin-bottom: 8px;">Filtros
+                            de cálculo para indicadores:</span>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <select id="indFilterEstado" onchange="renderIndicadores()" class="inline-select"
+                                style="flex: 1; min-width: 130px;">
+                                <option value="">Todos los estados</option>
+                                <option value="Nuevo">Nuevo</option>
+                                <option value="en_proceso">En proceso</option>
+                                <option value="resuelto">Resuelto</option>
+                                <option value="confirmado">Confirmado</option>
+                                <option value="reabierto">Reabierto</option>
+                            </select>
+                            <select id="indFilterPrioridad" onchange="renderIndicadores()" class="inline-select"
+                                style="flex: 1; min-width: 130px;">
+                                <option value="">Todas las prioridades</option>
+                                <option value="alta">Alta</option>
+                                <option value="media">Media</option>
+                                <option value="baja">Baja</option>
+                            </select>
+                            <select id="indFilterCategoria" onchange="renderIndicadores()" class="inline-select"
+                                style="flex: 1; min-width: 130px;">
+                                <option value="">Todas las categorías</option>
+                                <option value="Hardware">Hardware</option>
+                                <option value="Software">Software</option>
+                                <option value="Red">Red</option>
+                                <option value="Otro">Otro</option>
+                            </select>
+                            <button class="btn-small btn-secondary"
+                                onclick="resetFiltrosIndicadores()">Restablecer</button>
+                        </div>
+                    </div>
+
+                    <div id="indicadoresContent"></div>
+                </div>
+
+                <!-- HU12: Exportar reporte CSV con filtros y sin texto libre -->
+                <div class="section">
+                    <h2>Exportar Reporte (HU12 + Cambio Controlado 2)</h2>
+                    <p class="help-text">Descargue el reporte estructurado aplicando los filtros actuales de búsqueda.
+                        Se excluyen credenciales y texto libre confidencial para auditoría autorizada.</p>
+                    <button class="btn btn-success" onclick="exportarReporte()" style="max-width: 320px;">📥 Descargar
+                        Reporte CSV Filtrado</button>
+                    <span id="exportSuccess" class="success-inline"
+                        style="display: none; margin-left: 10px; font-size: 13px;">✓ Exportación registrada en
+                        auditoría</span>
+                </div>
+            </section>
+
+            <!-- Agente Dashboard -->
+            <section id="agenteDashboard" class="dashboard">
+                <div class="section">
+                    <h2>Solicitudes Asignadas</h2>
+
+                    <!-- HU09: Filtros para agente -->
+                    <div class="filter-section">
+                        <div class="form-group" style="margin-bottom: 15px;">
+                            <input type="text" id="agenteSearchInput"
+                                placeholder="Buscar por título, descripción o ID..." onkeyup="filtrarAgente()">
+                        </div>
+                        <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                            <select id="agenteFilterEstado" onchange="filtrarAgente()" class="inline-select"
+                                style="flex: 1; min-width: 140px;">
+                                <option value="">Todos los estados</option>
+                                <option value="Nuevo">Nuevo</option>
+                                <option value="en_proceso">En proceso</option>
+                                <option value="resuelto">Resuelto</option>
+                                <option value="confirmado">Confirmado</option>
+                                <option value="reabierto">Reabierto</option>
+                            </select>
+                            <select id="agenteFilterPrioridad" onchange="filtrarAgente()" class="inline-select"
+                                style="flex: 1; min-width: 140px;">
+                                <option value="">Todas las prioridades</option>
+                                <option value="alta">Alta</option>
+                                <option value="media">Media</option>
+                                <option value="baja">Baja</option>
+                            </select>
+                            <select id="agenteFilterCategoria" onchange="filtrarAgente()" class="inline-select"
+                                style="flex: 1; min-width: 140px;">
+                                <option value="">Todas las categorías</option>
+                                <option value="Hardware">Hardware</option>
+                                <option value="Software">Software</option>
+                                <option value="Red">Red</option>
+                                <option value="Otro">Otro</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <p class="help-text">
+                        Solicitudes asignadas a usted. Gestione estados permitidos y registre avances inmutables.
+                    </p>
+                    <div id="agenteTable"></div>
+                </div>
+            </section>
+
+            <!-- Auditor Dashboard -->
+            <section id="auditorDashboard" class="dashboard">
+                <div class="section">
+                    <h2>Auditoría del Sistema (HU11 + Cambio Controlado 2)</h2>
+                    <p class="help-text">
+                        Vista de solo lectura restringida. Historial estructurado por actor codificado, fecha, campo
+                        modificado y valores anterior/nuevo. Excluye texto libre no estructurado.
+                    </p>
+
+                    <!-- Filtros para auditor -->
+                    <div class="filter-section">
+                        <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+                            <input type="text" id="auditorSearchInput"
+                                placeholder="Buscar por solicitud o actor codificado..." onkeyup="filtrarAuditor()"
+                                style="flex: 2; min-width: 200px;">
+                            <select id="auditorFilterCampo" onchange="filtrarAuditor()" class="inline-select"
+                                style="flex: 1; min-width: 160px;">
+                                <option value="">Todos los campos</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="auditorTable"></div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal Principal para Detalles -->
+    <div id="detailModal" class="modal" role="dialog" aria-modal="true">
+        <div class="modal-content modal-large">
+            <h3 id="modalTitle">Detalles de la Solicitud</h3>
+            <div id="modalContent"></div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" onclick="closeModal()">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Justificación y Fecha Objetivo para Prioridad Alta (Cambio Controlado 1) -->
+    <div id="modalPrioridadAlta" class="modal" role="dialog" aria-modal="true">
+        <div class="modal-content">
+            <h3 style="color: #c0392b;">Solicitud de Prioridad Alta</h3>
+            <p class="help-text">
+                Por política de control de cambios (Sprint 2), elevar una solicitud a <strong>Prioridad Alta</strong>
+                requiere justificación formal y fecha objetivo.
+            </p>
+            <form id="formPrioridadAlta" onsubmit="confirmarPrioridadAlta(event)">
+                <input type="hidden" id="altaSolicitudId">
+                <div class="form-group">
+                    <label for="altaJustificacion">Justificación *:</label>
+                    <textarea id="altaJustificacion" rows="3"
+                        placeholder="Indique el impacto en el servicio o la razón de urgencia" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="altaFechaObjetivo">Fecha objetivo de resolución *:</label>
+                    <input type="date" id="altaFechaObjetivo" required>
+                </div>
+                <div class="modal-buttons">
+                    <button type="button" class="btn btn-secondary"
+                        onclick="cerrarModalPrioridadAlta()">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Confirmar Prioridad Alta</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Motivo de Reapertura (HU08) -->
+    <div id="modalReapertura" class="modal" role="dialog" aria-modal="true">
+        <div class="modal-content">
+            <h3 style="color: #8e44ad;">Reabrir Solicitud</h3>
+            <p class="help-text">
+                Para reabrir una solicitud resuelta, es obligatorio indicar el motivo por el cual la solución propuesta
+                no fue satisfactoria.
+            </p>
+            <form id="formReapertura" onsubmit="confirmarReapertura(event)">
+                <input type="hidden" id="reabrirSolicitudId">
+                <div class="form-group">
+                    <label for="motivoReapertura">Motivo de reapertura *:</label>
+                    <textarea id="motivoReapertura" rows="3"
+                        placeholder="Explique qué parte del problema persiste o qué falla se presentó"
+                        required></textarea>
+                </div>
+                <div class="modal-buttons">
+                    <button type="button" class="btn btn-secondary" onclick="cerrarModalReapertura()">Cancelar</button>
+                    <button type="submit" class="btn btn-warning">Confirmar Reapertura</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
